@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ConnectedApp xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>amitsingh.iit007@gmail.com</contactEmail>
+    <label>GitHuhActionDemo</label>
+    <oauthConfig>
+        <callbackUrl>http://localhost:1717/OauthRedirect</callbackUrl>
+        <certificate>MIIDdjCCAl4CCQCfiKaIdli5xTANBgkqhkiG9w0BAQsFADB9MQswCQYDVQQGEwJJTjELMAkGA1UECBMCVVAxETAPBgNVBAcTCEZhdGVoUHVyMRQwEgYDVQQKEwtTRkRDUEFOVEhFUjENMAsGA1UEAxMEQU1JVDEpMCcGCSqGSIb3DQEJARYaYW1pdHNpbmdoLmlpdDAwN0BnbWFpbC5jb20wHhcNMjEwNDEyMTAxNjMwWhcNMjIwNDEyMTAxNjMwWjB9MQswCQYDVQQGEwJJTjELMAkGA1UECBMCVVAxETAPBgNVBAcTCEZhdGVoUHVyMRQwEgYDVQQKEwtTRkRDUEFOVEhFUjENMAsGA1UEAxMEQU1JVDEpMCcGCSqGSIb3DQEJARYaYW1pdHNpbmdoLmlpdDAwN0BnbWFpbC5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDHz+I+XFmIUGqNEBms7TmoeQ6+V49JA1KBNgFB1xuBYk81JYwZs2Rv8l6SLqZ31rpiKQ8ki9v9ttWwmUwhqU5vdT5trG0NPA49IUm6DykAcGa3aAqJ46u9tXphAOdsqpcLuWjGA1hmOcp0gau7/l5Jr8xoV1y3SjAaMiLa2fbnzEIwLOBO3OdBIOAEHq+nxPLioWFCjnpAoCG35cAfVbGqWDRyR5r6lNiuqljV7lCbvt7LY2HIJzrPHi3lkb+Sq0qEdkZbi2KIOBDhGAEiSKTOrolq4GPqOBGgRhFszqjqz12ikpxLstIA0VuWXsIygJjbYdt1tqCvBavxROUEE70xAgMBAAEwDQYJKoZIhvcNAQELBQADggEBAD4a10b+BQjVJCou7jXWu7fi0oQXhoOLNpDcbhQpkydXtkjhTKuNg7OtiJ6ll7zmLKtf/mfkxW8R3U2cWl/bTQbIfCHug9MxPiINcQ9rMOnhvaTZD/Niq2hEAeLV/oMxjtwm4MU8RjLclsLwiMSZHqUiYnOEZkSXCQ3XYb8VBGWr9F3ceXfpvWEfuamG+sLC80liIBtSgVfPf6r0rz7UDduN3dOpfEl8XNHU4pCagkEPk7JMnMtXbRK4ys/V098VpmeOLbps++8trJ0wI16Snf+nKweDW+n3A3mncaxL+JjUAx2AoRMBgKnSWWB1UnezmNrqDUXZ5kPYeJk2h2BbmIE=</certificate>
+        <isAdminApproved>true</isAdminApproved>
+        <isConsumerSecretOptional>false</isConsumerSecretOptional>
+        <isIntrospectAllTokens>false</isIntrospectAllTokens>
+        <isSecretRequiredForRefreshToken>true</isSecretRequiredForRefreshToken>
+        <scopes>Api</scopes>
+        <scopes>Web</scopes>
+        <scopes>RefreshToken</scopes>
+    </oauthConfig>
+    <oauthPolicy>
+        <ipRelaxation>ENFORCE</ipRelaxation>
+        <refreshTokenPolicy>infinite</refreshTokenPolicy>
+    </oauthPolicy>
+    <profileName>System Administrator</profileName>
+</ConnectedApp>

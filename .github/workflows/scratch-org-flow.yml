@@ -1,0 +1,146 @@
+# Unique name for this workflow
+name: Scratch ORG Flow
+
+# Definition when the workflow should run
+on:
+    pull_request:
+      branches:
+      - yufiuriufn
+      paths-ignore:
+        - 'sfdx-project.json'
+        - 'README.md'
+        - 'SECURITY.md'
+        - 'package.json'
+        - 'sfdx-project.json'
+        - '/.github'
+    workflow_dispatch:
+
+# Jobs to be executed
+
+jobs:
+  environment-setup:
+    name: environment-setup
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the source code
+      - name: 'Checkout source code'
+        uses: actions/checkout@v2
+        
+      - name: 'Setup Node.js environment'
+        uses: actions/setup-node@v2.1.5
+        with:
+            # Set always-auth in npmrc
+            always-auth: true
+            # Version Spec of the version to use.  Examples: 12.x, 10.15.1, >=10.15.0
+            node-version: 12
+            # Target architecture for Node to use. Examples: x86, x64. Will use system architecture by default.
+            architecture: x64
+            # Set this option if you want the action to check for the latest available version that satisfies the version spec
+            check-latest: true
+            # Used to pull node distributions from node-versions.  Since there's a default, this is typically not supplied by the user.
+            token: ${{ github.token }}
+
+  Create-Deploy-to-Scratch-ORG:
+    name: create-scratch-org
+    needs: [environment-setup]
+    runs-on: ubuntu-latest  
+
+    steps:
+      # Install Salesforce CLI
+      - name: 'Install Salesforce CLI'
+        run: |
+            wget https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz
+            mkdir sfdx-cli
+            tar xJf sfdx-linux-amd64.tar.xz -C sfdx-cli --strip-components 1
+            ./sfdx-cli/install
+
+      # Run Salesforce CLI Scanner For Security checks
+      - name: 'Check for SFDX Update'
+        run: sfdx update
+
+      # Install Salesforce CLI Scanner
+      - name: 'Install Salesforce CLI Scanner'
+        run: sfdx plugins:install @salesforce/sfdx-scanner
+
+      # Checkout the source code
+      - name: 'Checkout source code'
+        uses: actions/checkout@v2
+
+      # Connect with Salesforce ORG
+      - name: 'Authorize a DevHub ORG'
+        working-directory: .github/jwt/
+        run: sfdx auth:jwt:grant --clientid ${{ secrets.DEVHUB_CONSUMER_KEY }} --jwtkeyfile server.key --username ${{ secrets.DEVHUB_USERNAME }} --instanceurl ${{ secrets.DEVHUB_URL }} --setdefaultdevhubusername -a 'hub-org'
+  
+    # Run Salesforce CLI Scanner For Security checks
+      - name: 'List All ORGS'
+        run: sfdx force:org:list
+
+    # Create Scratch ORG
+      - name: Create Scratch ORG
+        run: sfdx force:org:create -v 'hub-org' -s -f config/project-scratch-def.json -a 'ci-org' -d 30
+
+    # Comment login url
+      - name: Comment login url
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_REQUEST_COMMENT_URL:  ${{ github.event.pull_request._links.comments.href }}
+        run: |
+          sfdx force:org:open -u 'ci-org' -r
+    #      curl -X POST -H 'Content-Type:application/json' -d "{\"body\":\"${CIORG_LOGIN_URL}\"}" ${PULL_REQUEST_COMMENT_URL}?access_token=${GITHUB_TOKEN}
+      
+      # Deploy source to scratch org
+      - name: 'Push source to scratch org'
+        run: sfdx force:source:push --targetusername 'ci-org'
+
+      # Assign permissionset
+      #- name: 'Assign permissionset to default user'
+      #  run: sfdx force:user:permset:assign -n recipes
+
+      # Import sample data
+      - name: 'Import sample data'
+        run: sfdx force:data:tree:import -p ./data/data-plan.json
+
+      # Run Apex tests in scratch org
+      - name: 'Run Apex tests'
+        run: sfdx force:apex:test:run -c -r human -d ./tests/apex -w 20
+
+      # Upload code coverage data
+      - name: 'Upload code coverage for Apex to Codecov.io'
+        uses: codecov/codecov-action@v1
+        with:
+            flags: Apex
+
+      # Housekeeping
+      - name: 'Delete scratch org'
+        if: always()
+        run: sfdx force:org:delete -p -u ci-org
+
+  runs-security-check:
+    name: runs-security-check
+    runs-on: ubuntu-latest
+    needs: [Create-Deploy-to-Scratch-ORG]
+    steps:
+
+      # Install Salesforce CLI
+      - name: 'Install Salesforce CLI'
+        run: |
+            wget https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz
+            mkdir sfdx-cli
+            tar xJf sfdx-linux-amd64.tar.xz -C sfdx-cli --strip-components 1
+            ./sfdx-cli/install
+
+      # Run Salesforce CLI Scanner For Security checks
+      - name: 'Check for SFDX Update'
+        run: sfdx update
+
+      # Install Salesforce CLI Scanner
+      - name: 'Install Salesforce CLI Scanner'
+        run: sfdx plugins:install @salesforce/sfdx-scanner
+
+      # Checkout the source code
+      - name: 'Checkout source code'
+        uses: actions/checkout@v2
+
+      # Run Salesforce CLI Scanner For Security checks
+      - name: 'Scan For Security Exceptions in code'
+        run: sfdx scanner:run -c=Security -t=./force-app/main/default -f=json -v

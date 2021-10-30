@@ -1,0 +1,21 @@
+{
+    "orgName": "Acme Enterprise",
+    "edition": "Enterprise",
+    "features": ["Communities", "ServiceCloud", "MultiCurrency","PersonAccounts"],
+    "workitem__c": "WO-988723",
+    "release__c": "April 2021 Pilot",
+    "settings": {
+        "communitiesSettings": {
+            "enableNetworksEnabled": true
+        },
+        "mobileSettings": {
+            "enableS1EncryptedStoragePref2": true
+        },
+        "omniChannelSettings": {
+            "enableOmniChannel": true
+        },
+        "caseSettings": {
+            "systemUserEmail": "support@acme.com"
+        }
+    }
+}

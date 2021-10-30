@@ -1,0 +1,174 @@
+# Unique name for this workflow
+name: Validate Against UAT Sandbox Org
+
+# Definition when the workflow should run
+on:
+    push:
+      branches:
+      - uat
+      paths-ignore:
+        - 'sfdx-project.json'
+        - 'README.md'
+        - 'SECURITY.md'
+        - 'package.json'
+        - 'sfdx-project.json'
+    workflow_dispatch:
+    pull_request:
+      branches:
+      - qa
+      paths-ignore:
+        - 'sfdx-project.json'
+        - 'README.md'
+        - 'SECURITY.md'
+        - 'package.json'
+        - 'sfdx-project.json'
+
+# Jobs to be executed
+
+jobs:
+
+  send-email:
+    needs: [environment-setup, validate]
+    name: send-email
+    runs-on: ubuntu-latest
+    steps:
+        - name: Send mail
+          if: always()
+          uses: dawidd6/action-send-mail@v2
+          with:
+            # mail server settings
+            server_address: smtp.gmail.com
+            server_port: 465
+            # user credentials
+            username: ${{ secrets.EMAIL_USERNAME }}
+            password: ${{ secrets.EMAIL_PASSWORD }}
+            # email subject
+            subject: ${{ github.job }} job of ${{ github.repository }} has ${{ job.status }}
+            # email body as text
+            body: ${{ github.job }} job in worflow ${{ github.workflow }} of ${{ github.repository }} has ${{ job.status }}
+            # comma-separated string, send email to
+            to: sfdcpanther@gmail.com,amit.a.panther@gmail.com
+            # from email name
+            from: AMIT SINGH
+            # Optional unsigned/invalid certificates allowance:
+            ignore_cert: true
+            # Optional content type (defaults to text/plain):
+            content_type: text/html
+            # Optional converting Markdown to HTML (set content_type to text/html too):
+            convert_markdown: true
+  environment-setup:
+  
+    name: environment-setup
+    runs-on: ubuntu-latest
+    
+    steps:
+    
+      # Checkout the source code
+      - name: 'Checkout source code'
+        uses: actions/checkout@v2
+        
+      - name: 'Setup Node.js environment'
+        uses: actions/setup-node@v2.1.5
+        with:
+            # Set always-auth in npmrc
+             always-auth: true
+            # Version Spec of the version to use.  Examples: 12.x, 10.15.1, >=10.15.0
+             node-version: 12
+            # Target architecture for Node to use. Examples: x86, x64. Will use system architecture by default.
+             architecture: x64
+            # Set this option if you want the action to check for the latest available version that satisfies the version spec
+             check-latest: true
+            # Used to pull node distributions from node-versions.  Since there's a default, this is typically not supplied by the user.
+             token: ${{ github.token }}
+
+      # Cache node_modules to speed up the process
+      - name: Setup Node Environment
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: '12'
+          
+    # - name: Install Salesforce CLI
+    #   run: |
+      #      npm install sfdx-cli
+      #      node_modules/sfdx-cli/bin/run --version
+      #      node_modules/sfdx-cli/bin/run plugins --core
+            
+  validate:
+    name: Validate
+    needs: [environment-setup]
+    runs-on: ubuntu-latest
+    # if: github.event == 'push'
+    steps:
+
+      # Install Salesforce CLI
+      - name: 'Install Salesforce CLI'
+        run: |
+            wget https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz
+            mkdir sfdx-cli
+            tar xJf sfdx-linux-amd64.tar.xz -C sfdx-cli --strip-components 1
+            ./sfdx-cli/install
+
+      # Run Salesforce CLI Scanner For Security checks
+      - name: 'Check for SFDX Update'
+        run: sfdx update
+      
+      # Install Salesforce CLI Scanner
+      - name: 'Install Salesforce CLI Scanner'
+        run: sfdx plugins:install @salesforce/sfdx-scanner
+
+      # Checkout the source code
+      - name: 'Checkout source code'
+        uses: actions/checkout@v2
+        
+      # Connect with Salesforce ORG
+      - name: 'Connect with Salesforce ORG'
+        working-directory: .github/jwt/
+        run: sfdx auth:jwt:grant --clientid ${{ secrets.SALESFORCE_CONSUMER_KEY }} --jwtkeyfile server.key --username ${{ secrets.SALESFORCE_USERNAME }} -d --instanceurl ${{ secrets.SFDC_PROD_URL }} --setalias ${{ secrets.PROD_ALIAS }}
+  
+      # Run Salesforce CLI Scanner For Security checks
+      - name: 'List All ORGS'
+        run: sfdx force:org:list
+        
+      # Deploy source to org
+      - name: 'Perform the validation against UAT Sandbox'
+        run: sfdx force:source:deploy --checkonly --sourcepath 'force-app/main/default' --testlevel 'NoTestRun' --targetusername 'sfdcpanther-prod-org'
+
+      # Deploy source to org
+      - name: 'Perform the Deployment'
+        run: sfdx force:source:deploy --sourcepath 'force-app/main/default' --testlevel 'NoTestRun' --targetusername 'sfdcpanther-prod-org'
+
+      # Run Apex tests in scratch org
+      - name: 'Run Apex tests'
+        run: sfdx force:apex:test:run -c -r human --testlevel 'RunLocalTests' -d ./tests/apex -w 20 --targetusername 'sfdcpanther-prod-org' --codecoverage
+
+      # Upload code coverage data
+      - name: 'Upload code coverage for Apex to Codecov.io'
+        uses: codecov/codecov-action@v1
+        with:
+            flags: Apex
+            
+      - name: Send mail
+        
+        if: failure()
+        uses: dawidd6/action-send-mail@v2
+        with:
+            # mail server settings
+            server_address: smtp.gmail.com
+            server_port: 465
+            # user credentials
+            username: ${{ secrets.EMAIL_USERNAME }}
+            password: ${{ secrets.EMAIL_PASSWORD }}
+            # email subject
+            subject: ${{ github.job }} job of ${{ github.repository }} has ${{ job.status }}
+            # email body as text
+            body: ${{ github.job }} job in worflow ${{ github.workflow }} of ${{ github.repository }} has ${{ job.status }}
+            # comma-separated string, send email to
+            to: sfdcpanther@gmail.com,amit.a.panther@gmail.com
+            # from email name
+            from: AMIT SINGH
+            # Optional unsigned/invalid certificates allowance:
+            ignore_cert: true
+            # Optional content type (defaults to text/plain):
+            content_type: text/html
+            # Optional converting Markdown to HTML (set content_type to text/html too):
+            convert_markdown: true
