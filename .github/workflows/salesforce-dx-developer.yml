@@ -89,7 +89,7 @@ jobs:
         working-directory: .github/jwt/
         run: sfdx auth:jwt:grant --clientid ${{ secrets.SALESFORCE_CONSUMER_KEY }} --jwtkeyfile server.key --username ${{ secrets.SALESFORCE_USERNAME }} -d --instanceurl ${{ secrets.SFDC_PROD_URL }} --setalias ${{ secrets.PROD_ALIAS }}
   
-     # Run Salesforce CLI Scanner For Security checks
+     # Run Salesforce CLI Scanner For Security checks _
       - name: 'List All ORGS'
         run: sfdx force:org:list
         
